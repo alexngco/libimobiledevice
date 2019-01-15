@@ -636,7 +636,7 @@ static void print_progress(uint64_t current, uint64_t total)
 	
 	// Display global progress
 	float global_progress = (tmp_progress_end - tmp_progress_start) * ((float) current / (float) total) + tmp_progress_start;
-	PRINT_VERBOSE(1, "     %.3f%% Finished", global_progress);
+	PRINT_VERBOSE(1, "     %3.0f%% Finished", global_progress);
 
 	fflush(stdout);
 	if (progress == 100)
