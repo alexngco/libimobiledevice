@@ -96,6 +96,9 @@ enum cmd_flags {
 
 static int backup_domain_changed = 0;
 
+static float tmp_progress_start = 0; // Value of progress before DLMessageUploadFiles
+static float tmp_progress_end = 0; // Value of progress received in DLMessageUploadFiles
+
 static void notify_cb(const char *notification, void *userdata)
 {
 	if (strlen(notification) == 0) {
@@ -630,6 +633,10 @@ static void print_progress(uint64_t current, uint64_t total)
 	format_size = string_format_size(total);
 	PRINT_VERBOSE(1, "/%s)     ", format_size);
 	free(format_size);
+	
+	// Display global progress
+	float global_progress = (tmp_progress_end - tmp_progress_start) * ((float) current / (float) total) + tmp_progress_start;
+	PRINT_VERBOSE(1, "     %.3f%% Finished", global_progress);
 
 	fflush(stdout);
 	if (progress == 100)
@@ -2070,7 +2077,9 @@ checkpoint:
 					mb2_handle_send_files(mobilebackup2, message, backup_directory);
 				} else if (!strcmp(dlmsg, "DLMessageUploadFiles")) {
 					/* device wants to send files to the computer */
+					tmp_progress_start = overall_progress; // memorize the progress before the new message
 					mb2_set_overall_progress_from_message(message, dlmsg);
+					tmp_progress_end = overall_progress; // memorize the expected progress after the treatment of the new message
 					file_count += mb2_handle_receive_files(mobilebackup2, message, backup_directory);
 				} else if (!strcmp(dlmsg, "DLMessageGetFreeDiskSpace")) {
 					/* device wants to know how much disk space is available on the computer */
