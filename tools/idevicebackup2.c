@@ -91,7 +91,8 @@ enum cmd_flags {
 	CMD_FLAG_ENCRYPTION_CHANGEPW        = (1 << 8),
 	CMD_FLAG_FORCE_FULL_BACKUP          = (1 << 9),
 	CMD_FLAG_CLOUD_ENABLE               = (1 << 10),
-	CMD_FLAG_CLOUD_DISABLE              = (1 << 11)
+	CMD_FLAG_CLOUD_DISABLE              = (1 << 11),
+	CMD_FLAG_BACKUP_SIZE                = (1 << 12)
 };
 
 static int backup_domain_changed = 0;
@@ -1493,6 +1494,9 @@ int main(int argc, char *argv[])
 		else if (!strcmp(argv[i], "--full")) {
 			cmd_flags |= CMD_FLAG_FORCE_FULL_BACKUP;
 		}
+		else if (!strcmp(argv[i], "--size")) {
+			cmd_flags |= CMD_FLAG_BACKUP_SIZE;
+		}
 		else if (!strcmp(argv[i], "info")) {
 			cmd = CMD_INFO;
 			verbose = 0;
@@ -2085,18 +2089,22 @@ checkpoint:
 					/* device wants to know how much disk space is available on the computer */
 					uint64_t freespace = 0;
 					int res = -1;
-#ifdef WIN32
-					if (GetDiskFreeSpaceEx(backup_directory, (PULARGE_INTEGER)&freespace, NULL, NULL)) {
+					if (cmd_flags & CMD_FLAG_BACKUP_SIZE){
 						res = 0;
-					}
+					} else {
+#ifdef WIN32
+						if (GetDiskFreeSpaceEx(backup_directory, (PULARGE_INTEGER)&freespace, NULL, NULL)) {
+							res = 0;
+						}
 #else
-					struct statvfs fs;
-					memset(&fs, '\0', sizeof(fs));
-					res = statvfs(backup_directory, &fs);
-					if (res == 0) {
-						freespace = (uint64_t)fs.f_bavail * (uint64_t)fs.f_bsize;
-					}
+						struct statvfs fs;
+						memset(&fs, '\0', sizeof(fs));
+						res = statvfs(backup_directory, &fs);
+						if (res == 0) {
+							freespace = (uint64_t)fs.f_bavail * (uint64_t)fs.f_bsize;
+						}
 #endif
+					}
 					plist_t freespace_item = plist_new_uint(freespace);
 					mobilebackup2_send_status_response(mobilebackup2, res, NULL, freespace_item);
 					plist_free(freespace_item);
